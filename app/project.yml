@@ -1,0 +1,42 @@
+name: Palantir
+options:
+  bundleIdPrefix: app.palantir
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: AR7DXKP4VP
+    CODE_SIGN_STYLE: Manual
+targets:
+  Palantir:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+      - Resources
+    info:
+      path: Info.plist
+      properties:
+        CFBundleName: Palantir
+        # The accent lives here and nowhere else a build system has to parse.
+        CFBundleDisplayName: Palantír
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        # No Dock icon and no menu bar: it lives only in the status bar. It stays a
+        # real .app, so Spotlight still finds it.
+        LSUIElement: true
+        LSMinimumSystemVersion: "14.0"
+        NSCameraUsageDescription: "Palantír shows your camera in a floating bubble so it can be captured in a screen recording."
+        NSHumanReadableCopyright: "Built by Fellipe Brito"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.palantir.Palantir
+        PRODUCT_NAME: Palantir
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        COMBINE_HIDPI_IMAGES: YES
