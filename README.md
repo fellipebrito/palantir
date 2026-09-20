@@ -72,6 +72,65 @@ The app appears in the menu bar and nowhere else. On the first "Gaze into the
 stone" macOS asks for camera access; refuse it and the menu says so rather than
 showing a black circle.
 
+## Releasing
+
+```sh
+ASC_KEY_ID=<key-id> ASC_ISSUER=<issuer-uuid> ./scripts/release.sh
+```
+
+Builds, signs with Developer ID, notarizes, staples, and writes
+`dist/Palantir-<version>.dmg`. The version in the filename is read back out of
+the built bundle, so the number on the DMG is the number inside it.
+
+Two shorter paths:
+
+- `--no-notarize` signs with Developer ID but skips Apple entirely, for when the
+  App Store Connect key is not to hand. Gatekeeper warns on a Mac that has never
+  seen the app before.
+- `--unsigned` skips signing too. Gatekeeper blocks it. Local testing only.
+
+Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `app/project.yml`
+before cutting one. Nothing else carries a version number: the About box reads
+the bundle, and the release script reads the bundle.
+
+## The certificate
+
+Signed by **Bossa Nova Solutions (`AR7DXKP4VP`)** on the same Developer ID
+Application certificate as Lidless. One certificate signs any number of apps, so
+there is nothing to create here.
+
+**No API key can create one, on any team, at any role.** Both certificate types
+were tried against both teams and all four returned:
+
+```
+POST /v1/certificates -> 403
+"This operation can only be performed by the Account Holder."
+```
+
+It is a human-in-the-portal step by design. Do not spend time automating it.
+
+The private key lives outside this repo and never left the machine that made it,
+which is the point. The certificate is worthless without it, and losing it costs
+one of the five Developer ID slots the team gets. Back it up. Revoking one
+invalidates every app already signed with it, so create one, keep it, do not
+churn it.
+
+Expect a one-time keychain prompt the first time `codesign` reaches for the key
+on any machine. The first build fails, the second succeeds; that is the prompt,
+not a bug.
+
+## Distribution
+
+Releases go out as **GitHub Releases**, not committed to the repo:
+
+```sh
+ASC_KEY_ID=<key-id> ASC_ISSUER=<issuer-uuid> ./scripts/release.sh
+gh release create v1.0 dist/Palantir-1.0.dmg --title "Palantír 1.0" --notes "..."
+```
+
+Download the DMG, drag to Applications, open. The notarization ticket is
+stapled, so it opens with no warning even on a Mac that is offline.
+
 ## The menu
 
 | Item | What it does |
