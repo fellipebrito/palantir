@@ -10,10 +10,9 @@ disappointment or a mercy.
 Menu bar only. No Dock icon, no preferences window, no window chrome anywhere
 except the bubble, and the bubble has none.
 
-![Palantír on top of a screen recording](docs/screenshot.png)
-
-<!-- Replace docs/screenshot.png: the bubble over a real recording, bottom-left,
-     with the menu open beside it. -->
+<!-- SCREENSHOT GOES HERE. Add docs/screenshot.png (the bubble over a real
+     recording, bottom-left, with the menu open beside it) and restore:
+     ![Palantír on top of a screen recording](docs/screenshot.png) -->
 
 ## What it actually does
 
@@ -81,6 +80,11 @@ ASC_KEY_ID=<key-id> ASC_ISSUER=<issuer-uuid> ./scripts/release.sh
 Builds, signs with Developer ID, notarizes, staples, and writes
 `dist/Palantir-<version>.dmg`. The version in the filename is read back out of
 the built bundle, so the number on the DMG is the number inside it.
+
+Notarization runs **twice**, on the `.app` and then on the DMG that carries it.
+Both are needed. Notarizing only the DMG leaves the app itself without a ticket,
+so dragging it to `/Applications` and then going offline gives Gatekeeper
+nothing local to validate against.
 
 Two shorter paths:
 

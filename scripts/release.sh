@@ -34,6 +34,16 @@ if [ "$MODE" = "release" ]; then
   [ -f "$P8" ] || { echo "no private key at $P8" >&2; exit 1; }
 fi
 
+# Submits one file and waits. Used twice: once for the .app and once for the DMG
+# that carries it. Both are needed. Notarizing only the DMG leaves the app itself
+# without a ticket, so dragging it to /Applications on a Mac with no network has
+# nothing local to validate against.
+notarize() {
+  xcrun notarytool submit "$1" \
+    --key "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+    --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER" --wait
+}
+
 rm -rf "$DIST"; mkdir -p "$DIST"
 cd "$APPDIR"
 xcodegen generate >/dev/null
@@ -65,6 +75,17 @@ if [ "$MODE" != "unsigned" ]; then
   codesign --verify --strict --verbose=2 "$DIST/Palantir.app"
 fi
 
+if [ "$MODE" = "release" ]; then
+  # notarytool takes an archive, not a bundle, so the .app travels as a zip.
+  # ditto rather than zip: it is the only one that preserves the bundle's
+  # symlinks and extended attributes intact.
+  ditto -c -k --keepParent "$DIST/Palantir.app" "$DIST/Palantir.zip"
+  notarize "$DIST/Palantir.zip"
+  rm -f "$DIST/Palantir.zip"
+  xcrun stapler staple "$DIST/Palantir.app"
+  xcrun stapler validate "$DIST/Palantir.app"
+fi
+
 # A DMG rather than a zip: people get the drag-to-Applications gesture, and the
 # notarization ticket can be stapled to the DMG itself. Imaged from a staging
 # folder so nothing else in dist/ ends up inside the image.
@@ -76,9 +97,7 @@ hdiutil create -volname "Palantír" -srcfolder "$STAGE" -ov -format UDZO "$DMG" 
 
 if [ "$MODE" = "release" ]; then
   codesign --force --sign "Developer ID Application" "$DMG"
-  xcrun notarytool submit "$DMG" \
-    --key "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
-    --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER" --wait
+  notarize "$DMG"
   # Stapling is what lets it open on a Mac with no network.
   xcrun stapler staple "$DMG"
   xcrun stapler validate "$DMG"
