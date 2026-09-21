@@ -33,6 +33,9 @@ final class Stone {
     /// Why the stone is dark, when the reason is not simply that it was shrouded.
     /// Nil means the user shrouded it, which needs no explanation.
     private(set) var darkness: String?
+    /// True while macOS has the camera switched off for this app. Once it is off,
+    /// macOS never asks again, so the menu has to offer the way back itself.
+    private(set) var isBlocked = false
     private(set) var size: StoneSize
     private(set) var isMirrored: Bool
     private(set) var deviceID: String?
@@ -56,6 +59,7 @@ final class Stone {
         isMirrored = d.object(forKey: Key.mirrored) as? Bool ?? true
         deviceID = d.string(forKey: Key.device)
         refreshCameras()
+        refreshPermission()
 
         // A camera appearing or vanishing changes what the picker can offer, and
         // can pull the floor out from under a stone that is currently watching.
@@ -77,7 +81,7 @@ final class Stone {
 
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            break
+            isBlocked = false
         case .notDetermined:
             // Ask, then come back through this same path on the answer.
             darkness = "macOS has not been asked yet"
@@ -85,12 +89,13 @@ final class Stone {
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     if granted { self.darkness = nil; self.show() }
-                    else { self.darkness = "the camera was refused" }
+                    else { self.darkness = "the camera was refused"; self.isBlocked = true }
                 }
             }
             return
         case .denied, .restricted:
             darkness = "the camera is blocked in System Settings"
+            isBlocked = true
             return
         @unknown default:
             darkness = "macOS would not say whether the camera is allowed"
@@ -150,6 +155,22 @@ final class Stone {
     var currentCamera: AVCaptureDevice? { CameraEngine.device(id: deviceID) }
 
     func refreshCameras() { cameras = CameraEngine.devices() }
+
+    /// Re-reads the permission every time the menu opens. The switch lives in
+    /// System Settings, so the only moment this app can notice it flipped back on
+    /// is the next time someone looks at the menu.
+    func refreshPermission() {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        let blocked = status == .denied || status == .restricted
+        // Switched back on while the menu was closed: the old excuse is now false.
+        if isBlocked && !blocked { darkness = nil }
+        isBlocked = blocked
+    }
+
+    func openCameraSettings() {
+        let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera"
+        if let url = URL(string: pane) { NSWorkspace.shared.open(url) }
+    }
 
     private func camerasChanged() {
         refreshCameras()

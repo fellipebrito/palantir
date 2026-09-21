@@ -38,6 +38,11 @@ struct MenuContent: View {
             MenuRow(title: stone.isShowing ? "Shroud the stone" : "Gaze into the stone") {
                 stone.toggle()
             }
+            if stone.isBlocked {
+                // Only while blocked: the status line says what is wrong, and this
+                // is the one click that fixes it.
+                MenuRow(title: "Open Camera settings") { stone.openCameraSettings() }
+            }
 
             Divider()
 
@@ -99,7 +104,10 @@ struct MenuContent: View {
                 .padding(.vertical, 9)
         }
         .frame(width: 260)
-        .onAppear { stone.refreshCameras() }
+        .onAppear {
+            stone.refreshCameras()
+            stone.refreshPermission()
+        }
     }
 
     /// The one line that has to earn its place: what is true right now, and if
