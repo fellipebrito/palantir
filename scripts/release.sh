@@ -70,7 +70,12 @@ DMG="$DIST/Palantir-$VERSION.dmg"
 
 if [ "$MODE" != "unsigned" ]; then
   # Hardened runtime is required for notarization and is set in project.yml.
+  # --entitlements is not optional: a --force re-sign replaces the whole
+  # signature, and entitlements live inside it. Leave the flag off and the camera
+  # entitlement Xcode applied is silently stripped, which under the hardened
+  # runtime means the camera is refused with no prompt.
   codesign --force --options runtime --timestamp \
+    --entitlements "$APPDIR/Palantir.entitlements" \
     --sign "Developer ID Application" "$DIST/Palantir.app"
   codesign --verify --strict --verbose=2 "$DIST/Palantir.app"
 fi
